@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="工具," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="主要对现在项目中使用的emqttd集群进行性能摸底。 1: emqtt_benchmark参数说明$ .&#x2F;emqtt_bench_sub –help   –help             help information  -h, –host         mqtt server hostname or IP address [default: localhost]  -p, –port">
+<meta property="og:type" content="article">
+<meta property="og:title" content="emqtt test">
+<meta property="og:url" content="http://yoursite.com/2018/05/27/2018-5-28-mqtt-test/index.html">
+<meta property="og:site_name" content="vvvvcp blog">
+<meta property="og:description" content="主要对现在项目中使用的emqttd集群进行性能摸底。 1: emqtt_benchmark参数说明$ .&#x2F;emqtt_bench_sub –help   –help             help information  -h, –host         mqtt server hostname or IP address [default: localhost]  -p, –port">
+<meta property="article:published_time" content="2018-05-27T06:00:00.000Z">
+<meta property="article:modified_time" content="2020-04-24T07:32:10.670Z">
+<meta property="article:author" content="shawn hu">
+<meta property="article:tag" content="工具">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/05/27/2018-5-28-mqtt-test/"/>
+
+
+
+
+
+  <title>emqtt test | vvvvcp blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">vvvvcp blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/27/2018-5-28-mqtt-test/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shawn hu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/favicon.ico">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="vvvvcp blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">emqtt test</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-27T14:00:00+08:00">
+                2018-05-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>主要对现在项目中使用的emqttd集群进行性能摸底。</p>
+<h1 id="1-emqtt-benchmark参数说明"><a href="#1-emqtt-benchmark参数说明" class="headerlink" title="1: emqtt_benchmark参数说明"></a>1: emqtt_benchmark参数说明</h1><p>$ ./emqtt_bench_sub –help</p>
+<p>  –help             help information<br>  -h, –host         mqtt server hostname or IP address [default: localhost]<br>  -p, –port         mqtt server port number [default: 1883]<br>  -c, –count        max count of clients [default: 200]<br>  -n, –startnumber  start number [default: 0]<br>  -i, –interval     interval of connecting to the broker [default: 10]<br>  -t, –topic        topic subscribe, support %u, %c, %i variables<br>  -q, –qos          subscribe qos [default: 0]<br>  -u, –username     username for connecting to server<br>  -P, –password     password for connecting to server<br>  -k, –keepalive    keep alive in seconds [default: 300]<br>  -C, –clean        clean session [default: true]<br>  –ifaddr           local ipaddress or interface address  </p>
+<p>$ ./emqtt_bench_pub –help</p>
+<p>  –help                 help information<br>  -h, –host             mqtt server hostname or IP address [default:<br>                         localhost]<br>  -p, –port             mqtt server port number [default: 1883]<br>  -c, –count            max count of clients [default: 200]<br>  -n, –startnumber      start number [default: 0]<br>  -i, –interval         interval of connecting to the broker [default: 10]<br>  -I, –interval_of_msg  interval of publishing message(ms) [default: 1000]<br>  -u, –username         username for connecting to server<br>  -P, –password         password for connecting to server<br>  -t, –topic            topic subscribe, support %u, %c, %i variables<br>  -s, –size             payload size [default: 256]<br>  -q, –qos              subscribe qos [default: 0]<br>  -r, –retain           retain message [default: false]<br>  -k, –keepalive        keep alive in seconds [default: 300]<br>  -C, –clean            clean session [default: true]<br>  –ifaddr               local ipaddress or interface address   </p>
+<h1 id="2-命令示例"><a href="#2-命令示例" class="headerlink" title="2: 命令示例"></a>2: 命令示例</h1><p>For example, create 50K concurrent clients at the arrival rate of 100/sec:　　<br>./emqtt_bench_sub -c 50000 -i 10 -t bench/%i -q 2　　</p>
+<p>For example, create 100 clients and each client publish messages at the rate of 100 msg/sec.　　<br>./emqtt_bench_pub -c 100 -I 10 -t bench/%i -s 256　　</p>
+<h1 id="3-服务器参数优化"><a href="#3-服务器参数优化" class="headerlink" title="3: 服务器参数优化"></a>3: 服务器参数优化</h1><p>见下一篇</p>
+<h1 id="4-测试吞吐量"><a href="#4-测试吞吐量" class="headerlink" title="4: 测试吞吐量"></a>4: 测试吞吐量</h1><p>调整客户端总数及发送频率看服务端压力情况，payload采用默认256字节。　　</p>
+<h1 id="5-测试连接数"><a href="#5-测试连接数" class="headerlink" title="5: 测试连接数"></a>5: 测试连接数</h1><p>调整客户端连接总数以及每秒新增连接的速度，看服务端的压力情况。　　</p>
+<h1 id="6-压力测试指标"><a href="#6-压力测试指标" class="headerlink" title="6:　压力测试指标"></a>6:　压力测试指标</h1><p>htop 查看服务器的cpu占有率及内存使用情况。<br>iotop　查看服务器的IO情况。  </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag"># 工具</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/01/2016-8-1-golang-beego/" rel="next" title="golang beego">
+                <i class="fa fa-chevron-left"></i> golang beego
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/27/2018-5-27-redis-cmd/" rel="prev" title="redis command">
+                redis command <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/favicon.ico"
+                alt="shawn hu" />
+            
+              <p class="site-author-name" itemprop="name">shawn hu</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-emqtt-benchmark参数说明"><span class="nav-number">1.</span> <span class="nav-text">1: emqtt_benchmark参数说明</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-命令示例"><span class="nav-number">2.</span> <span class="nav-text">2: 命令示例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-服务器参数优化"><span class="nav-number">3.</span> <span class="nav-text">3: 服务器参数优化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-测试吞吐量"><span class="nav-number">4.</span> <span class="nav-text">4: 测试吞吐量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-测试连接数"><span class="nav-number">5.</span> <span class="nav-text">5: 测试连接数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-压力测试指标"><span class="nav-number">6.</span> <span class="nav-text">6:　压力测试指标</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shawn hu</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

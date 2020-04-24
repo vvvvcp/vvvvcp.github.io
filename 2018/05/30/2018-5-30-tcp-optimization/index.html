@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="工具," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="主要针对emqtt服务器的tcp连接性能优化，使其能够支撑100万的连接数。 1: 文件句柄数量受限1.1:单一进程的文件句柄数量受限1、直接使用ulimit命令，如：[root@localhost ~]# ulimit -n 1048576执行成功之后，ulimit n、Sn、Hn的值均会变为1048576。但该方法设置的值只会在当前终端有效，且设置的值不能高于方法2中设置的值。 2、对 &#x2F;et">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tcp optimization">
+<meta property="og:url" content="http://yoursite.com/2018/05/30/2018-5-30-tcp-optimization/index.html">
+<meta property="og:site_name" content="vvvvcp blog">
+<meta property="og:description" content="主要针对emqtt服务器的tcp连接性能优化，使其能够支撑100万的连接数。 1: 文件句柄数量受限1.1:单一进程的文件句柄数量受限1、直接使用ulimit命令，如：[root@localhost ~]# ulimit -n 1048576执行成功之后，ulimit n、Sn、Hn的值均会变为1048576。但该方法设置的值只会在当前终端有效，且设置的值不能高于方法2中设置的值。 2、对 &#x2F;et">
+<meta property="article:published_time" content="2018-05-30T06:00:00.000Z">
+<meta property="article:modified_time" content="2020-04-24T07:32:24.683Z">
+<meta property="article:author" content="shawn hu">
+<meta property="article:tag" content="工具">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/05/30/2018-5-30-tcp-optimization/"/>
+
+
+
+
+
+  <title>tcp optimization | vvvvcp blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">vvvvcp blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/30/2018-5-30-tcp-optimization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shawn hu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/favicon.ico">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="vvvvcp blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">tcp optimization</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-30T14:00:00+08:00">
+                2018-05-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>主要针对emqtt服务器的tcp连接性能优化，使其能够支撑100万的连接数。</p>
+<h1 id="1-文件句柄数量受限"><a href="#1-文件句柄数量受限" class="headerlink" title="1: 文件句柄数量受限"></a>1: 文件句柄数量受限</h1><h2 id="1-1-单一进程的文件句柄数量受限"><a href="#1-1-单一进程的文件句柄数量受限" class="headerlink" title="1.1:单一进程的文件句柄数量受限"></a>1.1:单一进程的文件句柄数量受限</h2><p>1、直接使用ulimit命令，如：<br>[root@localhost ~]# ulimit -n 1048576<br>执行成功之后，ulimit n、Sn、Hn的值均会变为1048576。但该方法设置的值只会在当前终端有效，且设置的值不能高于方法2中设置的值。</p>
+<p>2、对 /etc/security/limits.conf 文件，添加或修改：</p>
+<ul>
+<li>soft nofile 1048576  </li>
+<li>hard nofile 1048576  </li>
+</ul>
+<p>ps：修改的值不能超过file-max的值，否则重新登录后会出现权限错误的问题。  </p>
+<h2 id="1-2：整个系统的文件句柄数量受限"><a href="#1-2：整个系统的文件句柄数量受限" class="headerlink" title="1.2：整个系统的文件句柄数量受限"></a>1.2：整个系统的文件句柄数量受限</h2><p>cat /proc/sys/fs/file-max<br>file-max表示系统所有进程最多允许同时打开的文件句柄数，是Linux系统级硬限制  </p>
+<p>vim /etc/sysctl.conf　　<br>修改fs.file-max = 1048576<br>保存成功后，需执行下面命令使之生效:<br>sysctl -p　　</p>
+<h1 id="2-端口数量受限"><a href="#2-端口数量受限" class="headerlink" title="2: 端口数量受限"></a>2: 端口数量受限</h1><p>cat /proc/sys/net/ipv4/ip_local_port_range  </p>
+<p>1、执行以下命令：</p>
+<p>echo “1024 65535”&gt; /proc/sys/net/ipv4/ip_local_port_range<br>该方法立即生效，但重启后会失效。</p>
+<p>2、修改 /etc/sysctl.conf 文件，增加一行内容：</p>
+<p>net.ipv4.ip_local_port_range = 1024 65535<br>保存成功后，需执行下面命令使之生效：</p>
+<p>sysctl -p  </p>
+<h1 id="3-TCP参数调优"><a href="#3-TCP参数调优" class="headerlink" title="3: TCP参数调优"></a>3: TCP参数调优</h1><p>修改 /etc/sysctl.conf 文件<br>net.ipv4.tcp_tw_reuse = 1<br>当服务器需要在大量TCP连接之间切换时，会产生大量处于TIME_WAIT状态的连接。TIME_WAIT意味着连接本身是关闭的，但资源还没有释放。将net_ipv4_tcp_tw_reuse设置为1是让内核在安全时尽量回收连接，这比重新建立新连接要便宜得多。  </p>
+<p>net.ipv4.tcp_fin_timeout = 15<br>这是处于TIME_WAIT状态的连接在回收前必须等待的最小时间。改小它可以加快回收。  </p>
+<p>net.core.rmem_max = 16777216<br>net.core.wmem_max = 16777216<br>提高TCP的最大缓冲区大小，其中：  </p>
+<p>net.core.rmem_max：表示接收套接字缓冲区大小的最大值（以字节为单位）。  </p>
+<p>net.core.wmem_max：表示发送套接字缓冲区大小的最大值（以字节为单位）。  </p>
+<p>net.ipv4.tcp_rmem = 4096 87380 16777216<br>net.ipv4.tcp_wmem = 4096 65536 16777216<br>提高Linux内核自动对socket缓冲区进行优化的能力，其中：  </p>
+<p>net.ipv4.tcp_rmem：用来配置读缓冲的大小，第1个值为最小值，第2个值为默认值，第3个值为最大值。  </p>
+<p>net.ipv4.tcp_wmem：用来配置写缓冲的大小，第1个值为最小值，第2个值为默认值，第3个值为最大值。  </p>
+<p>net.core.netdev_max_backlog = 16384<br>每个网络接口接收数据包的速率比内核处理这些包的速率快时，允许送到队列的数据包的最大数目。默认为1000。  </p>
+<p>net.core.somaxconn = 32768<br>表示socket监听（listen）的backlog上限。什么是backlog呢？backlog就是socket的监听队列，当一个请求（request）尚未被处理或建立时，他会进入backlog。而socket server可以一次性处理backlog中的所有请求，处理后的请求不再位于监听队列中。当server处理请求较慢，以至于监听队列被填满后，新来的请求会被拒绝。默认为128。</p>
+<p>net.ipv4.tcp_max_syn_backlog = 16384<br>表示SYN队列的长度，默认为1024，加大队列长度为16384，可以容纳更多等待连接的网络连接数。  </p>
+<p>net.ipv4.tcp_syncookies = 1<br>表示开启SYN Cookies。当出现SYN等待队列溢出时，启用cookies来处理，可防范少量SYN攻击，默认为0，表示关闭。  </p>
+<p>net.ipv4.tcp_max_tw_buckets = 360000<br>表示系统同时保持TIME_WAIT套接字的最大数量，如果超过这个数字，TIME_WAIT套接字将立刻被清除并打印警告信息。默认为180000。  </p>
+<p>net.ipv4.tcp_no_metrics_save = 1<br>一个tcp连接关闭后，把这个连接曾经有的参数比如慢启动门限snd_sthresh、拥塞窗口snd_cwnd，还有srtt等信息保存到dst_entry中，只要dst_entry没有失效，下次新建立相同连接的时候就可以使用保存的参数来初始化这个连接。  </p>
+<p>net.ipv4.tcp_syn_retries = 2<br>表示在内核放弃建立连接之前发送SYN包的数量，默认为4。  </p>
+<p>net.ipv4.tcp_synack_retries = 2<br>表示在内核放弃连接之前发送SYN+ACK包的数量，默认为5。  </p>
+<h1 id="4-客户端连接测试设置"><a href="#4-客户端连接测试设置" class="headerlink" title="4: 客户端连接测试设置"></a>4: 客户端连接测试设置</h1><p>由于端口为16进制，即最大端口数为2的16次方65536（0-65535）。在Linux系统里，1024以下端口只有超级管理员用户（如root）才可以使用，普通用户只能使用大于等于1024的端口值。  </p>
+<p>sysctl -w net.ipv4.ip_local_port_range=”1024 65535”<br>echo 1000000 &gt; /proc/sys/fs/nr_open<br>ulimit -n 100000  </p>
+<p>修改成功后，可用端口即增加到65535-1024=64511个，即单个客户端机器只能同时模拟64511个用户。要想突破这个限制，只能给该客户端增加IP地址，这样即可相应成倍地增加可用IP:PORT数。  </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag"># 工具</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/27/2018-5-27-redis-cmd/" rel="next" title="redis command">
+                <i class="fa fa-chevron-left"></i> redis command
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/11/2018-6-11-spring-aspectj/" rel="prev" title="Spring AOP AspectJ">
+                Spring AOP AspectJ <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/favicon.ico"
+                alt="shawn hu" />
+            
+              <p class="site-author-name" itemprop="name">shawn hu</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">18</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-文件句柄数量受限"><span class="nav-number">1.</span> <span class="nav-text">1: 文件句柄数量受限</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-单一进程的文件句柄数量受限"><span class="nav-number">1.1.</span> <span class="nav-text">1.1:单一进程的文件句柄数量受限</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2：整个系统的文件句柄数量受限"><span class="nav-number">1.2.</span> <span class="nav-text">1.2：整个系统的文件句柄数量受限</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-端口数量受限"><span class="nav-number">2.</span> <span class="nav-text">2: 端口数量受限</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-TCP参数调优"><span class="nav-number">3.</span> <span class="nav-text">3: TCP参数调优</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-客户端连接测试设置"><span class="nav-number">4.</span> <span class="nav-text">4: 客户端连接测试设置</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shawn hu</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
